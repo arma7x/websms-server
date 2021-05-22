@@ -1,8 +1,7 @@
 // {"type":"CONNECTED","content":"799523","to":0,"from":0}
 
-var WEBSOCKET_ID;
-var SECRET_KEY;
-var PUSH_ENDPOINT = {}
+var WEBSOCKET_ID
+var SECRET_KEY
 var CONNECTED_CLIENTS = {};
 
 function dec2hex(dec) {
@@ -70,26 +69,35 @@ function connectAsDesktop() {
           WEBSOCKET_ID = parseInt(data.content);
           break
         case "SYN":
-          ws.send(JSON.stringify({"type":"SYN-ACK","content":PUBLIC_KEY,"to":parseInt(data.from),"from":WEBSOCKET_ID}))
+          if (confirm(`${data.from} ?`)) {
+            ws.send(JSON.stringify({"type":"SYN-ACK","content":PUBLIC_KEY,"to":parseInt(data.from),"from":WEBSOCKET_ID}))
+          } else {
+            ws.send(JSON.stringify({"type":"RES","content":"false","to":parseInt(data.from),"from":WEBSOCKET_ID}))
+          }
+          
           break
         case "ACK":
           let dec = new TextDecoder();
           var parts = data.content.split(' ');
-
           window.crypto.subtle.decrypt({ name: "RSA-OAEP" }, PRIVATE_KEY, _base64ToArrayBuffer(parts[0]))
           .then((decrypted) => {
-            SECRET_KEY = dec.decode(new Uint8Array(decrypted));
-            var bytes  = CryptoJS.AES.decrypt(parts[1], SECRET_KEY);
+            var sk = dec.decode(new Uint8Array(decrypted));
+            var bytes  = CryptoJS.AES.decrypt(parts[1], sk);
             var originalText = bytes.toString(CryptoJS.enc.Utf8);
-            CONNECTED_CLIENTS[data.from] = JSON.parse(originalText);
+            CONNECTED_CLIENTS[data.from] = {
+              push_endpoint: JSON.parse(originalText),
+              secret_key: sk
+            };
+            ws.send(JSON.stringify({"type":"RES","content":"true","to":parseInt(data.from),"from":WEBSOCKET_ID}))
             console.log(CONNECTED_CLIENTS);
           })
           .catch((err) => {
+            ws.send(JSON.stringify({"type":"RES","content":"false","to":parseInt(data.from),"from":WEBSOCKET_ID}))
             console.error(err);
+          })
+          .finally(() => {
+            ws.close()
           });
-
-          ws.send(JSON.stringify({"type":"RES","content":"true","to":parseInt(data.from),"from":WEBSOCKET_ID}))
-          ws.close()
           break
       }
     } catch (e) {
@@ -123,23 +131,26 @@ function connectAsClient(DESKTOP_ID) {
           ws.send(JSON.stringify({"type":"SYN","content":"","to":DESKTOP_ID,"from":WEBSOCKET_ID}))
           break
         case "SYN-ACK":
-
-          let enc = new TextEncoder();
-          let E_end_point = CryptoJS.AES.encrypt(JSON.stringify({url: 'https://push.kaiostech.com:8443/wpush/v2'}) , SECRET_KEY).toString();
-          let E_secret_key;
-          let pub = _base64ToArrayBuffer(data.content);
-          window.crypto.subtle.importKey("spki", pub, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, false, ["encrypt"])
-          .then((publicKey) => {
-            return window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, enc.encode(SECRET_KEY));
-          })
-          .then((encrypted) => {
-            E_secret_key = _arrayBufferToBase64(encrypted);
-            var content = `${E_secret_key} ${E_end_point}`
-            ws.send(JSON.stringify({"type":"ACK","content":content,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
-          })
-          .catch((err) => {
-            console.error(err);
-          });
+          if (data.from, DESKTOP_ID) {
+            let enc = new TextEncoder();
+            let E_end_point = CryptoJS.AES.encrypt(JSON.stringify({url: 'https://push.kaiostech.com:8443/wpush/v2'}) , SECRET_KEY).toString();
+            let E_secret_key;
+            let pub = _base64ToArrayBuffer(data.content);
+            window.crypto.subtle.importKey("spki", pub, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, false, ["encrypt"])
+            .then((publicKey) => {
+              return window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, enc.encode(SECRET_KEY));
+            })
+            .then((encrypted) => {
+              E_secret_key = _arrayBufferToBase64(encrypted);
+              var content = `${E_secret_key} ${E_end_point}`
+              ws.send(JSON.stringify({"type":"ACK","content":content,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
+            })
+            .catch((err) => {
+              console.error(err);
+            });
+          } else {
+            ws.close();
+          }
           break
         case "RES":
           console.log(data.content);
