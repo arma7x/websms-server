@@ -2,7 +2,7 @@
 
 var WEBSOCKET_ID;
 var SECRET_KEY;
-var PUSH_ENDPOINT = {url: 'https://push.kaiostech.com:8443/wpush/v2'}
+var PUSH_ENDPOINT = {}
 var CONNECTED_CLIENTS = {};
 
 function dec2hex(dec) {
@@ -81,7 +81,8 @@ function connectAsDesktop() {
             SECRET_KEY = dec.decode(new Uint8Array(decrypted));
             var bytes  = CryptoJS.AES.decrypt(parts[1], SECRET_KEY);
             var originalText = bytes.toString(CryptoJS.enc.Utf8);
-            console.log(JSON.parse(originalText));
+            CONNECTED_CLIENTS[data.from] = JSON.parse(originalText);
+            console.log(CONNECTED_CLIENTS);
           })
           .catch((err) => {
             console.error(err);
@@ -124,7 +125,7 @@ function connectAsClient(DESKTOP_ID) {
         case "SYN-ACK":
 
           let enc = new TextEncoder();
-          let E_end_point = CryptoJS.AES.encrypt(JSON.stringify(PUSH_ENDPOINT) , SECRET_KEY).toString();
+          let E_end_point = CryptoJS.AES.encrypt(JSON.stringify({url: 'https://push.kaiostech.com:8443/wpush/v2'}) , SECRET_KEY).toString();
           let E_secret_key;
           let pub = _base64ToArrayBuffer(data.content);
           window.crypto.subtle.importKey("spki", pub, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, false, ["encrypt"])
