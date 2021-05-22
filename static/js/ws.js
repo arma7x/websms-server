@@ -1,5 +1,7 @@
 // {"type":"CONNECTED","content":"799523","to":0,"from":0}
 
+console.log(`%cStop! Don't paste any code here`, 'color: red; font-size: 30px; font-weight: bold;');
+
 var WEBSOCKET_ID
 var SECRET_KEY
 var CONNECTED_CLIENTS = {};
