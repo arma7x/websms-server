@@ -90,6 +90,7 @@
   </footer>
   <div class="backdrop"></div>
 
+  <script src="/static/js/crypto-js.min.js"></script>
   <script src="/static/js/ws.js"></script>
 </body>
 </html>

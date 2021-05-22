@@ -89,6 +89,8 @@ func listening() {
 				break
 			case msg := <- message:
 				switch (msg.Type) {
+					case "TEST":
+						fallthrough
 					case "SYN":
 						fallthrough
 					case "SYN-ACK":

@@ -2,8 +2,18 @@
 
 var WEBSOCKET_ID;
 var SECRET_KEY;
-var SECRET_KEY_RAW;
 var PUSH_ENDPOINT = {url: 'https://push.kaiostech.com:8443/wpush/v2'}
+var CONNECTED_CLIENTS = {};
+
+function dec2hex(dec) {
+  return dec.toString(16).padStart(2, "0");
+}
+
+function generateId(len) {
+  var arr = new Uint8Array((len || 40) / 2);
+  window.crypto.getRandomValues(arr);
+  return Array.from(arr, dec2hex).join('');
+}
 
 function _arrayBufferToBase64(buffer) {
   var binary = '';
@@ -25,19 +35,7 @@ function _base64ToArrayBuffer(base64) {
   return bytes.buffer;
 }
 
-window.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"])
-.then(function(key){
-  SECRET_KEY_RAW = key;
-  return crypto.subtle.exportKey('raw', key);
-})
-.then(function(key){
-  SECRET_KEY = _arrayBufferToBase64(key);
-  //console.log('SECRET_KEY', SECRET_KEY);
-})
-.catch(function(err){
-    console.error(err);
-});
-
+SECRET_KEY = generateId(64);
 
 function connectAsDesktop() {
 
@@ -45,15 +43,14 @@ function connectAsDesktop() {
   var PUBLIC_KEY;
 
   window.crypto.subtle.generateKey( { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([0x01, 0x00, 0x01]), hash: {name: "SHA-256"} }, true, ["encrypt", "decrypt"])
-  .then(function(key){
+  .then((key) => {
     PRIVATE_KEY = key.privateKey;
     return crypto.subtle.exportKey('spki', key.publicKey)
   })
-  .then(function(publicKey){
+  .then((publicKey) => {
     PUBLIC_KEY = _arrayBufferToBase64(publicKey);
-    //console.log('PUBLIC_KEY', PUBLIC_KEY);
   })
-  .catch(function(err){
+  .catch((err) => {
     console.error(err);
   });
 
@@ -76,17 +73,20 @@ function connectAsDesktop() {
           ws.send(JSON.stringify({"type":"SYN-ACK","content":PUBLIC_KEY,"to":parseInt(data.from),"from":WEBSOCKET_ID}))
           break
         case "ACK":
-          var D_secret_key;
           let dec = new TextDecoder();
           var parts = data.content.split(' ');
-          var parts_0 = _base64ToArrayBuffer(parts[0]);
-          window.crypto.subtle.decrypt({ name: "RSA-OAEP" }, PRIVATE_KEY, parts_0)
-          .then(function(decrypted){
-            D_secret_key = dec.decode(new Uint8Array(decrypted));
+
+          window.crypto.subtle.decrypt({ name: "RSA-OAEP" }, PRIVATE_KEY, _base64ToArrayBuffer(parts[0]))
+          .then((decrypted) => {
+            SECRET_KEY = dec.decode(new Uint8Array(decrypted));
+            var bytes  = CryptoJS.AES.decrypt(parts[1], SECRET_KEY);
+            var originalText = bytes.toString(CryptoJS.enc.Utf8);
+            console.log(JSON.parse(originalText));
           })
-          .catch(function(err){
+          .catch((err) => {
             console.error(err);
           });
+
           ws.send(JSON.stringify({"type":"RES","content":"true","to":parseInt(data.from),"from":WEBSOCKET_ID}))
           ws.close()
           break
@@ -98,6 +98,8 @@ function connectAsDesktop() {
   ws.onopen = () => {
     console.log('CONNECTED');
   }
+
+  return ws;
 }
 
 function connectAsClient(DESKTOP_ID) {
@@ -122,21 +124,15 @@ function connectAsClient(DESKTOP_ID) {
         case "SYN-ACK":
 
           let enc = new TextEncoder();
-          var E_end_point;
-          var E_secret_key;
-          window.crypto.subtle.encrypt({ name: "AES-GCM", iv: window.crypto.getRandomValues(new Uint8Array(12)), tagLength: 128 }, SECRET_KEY_RAW, enc.encode(JSON.stringify(PUSH_ENDPOINT)))
-          .then((encrypted) => {
-            E_end_point = _arrayBufferToBase64(encrypted);
-            let pub = _base64ToArrayBuffer(data.content);
-            return window.crypto.subtle.importKey("spki", pub, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, false, ["encrypt"]);
-          })
+          let E_end_point = CryptoJS.AES.encrypt(JSON.stringify(PUSH_ENDPOINT) , SECRET_KEY).toString();
+          let E_secret_key;
+          let pub = _base64ToArrayBuffer(data.content);
+          window.crypto.subtle.importKey("spki", pub, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, false, ["encrypt"])
           .then((publicKey) => {
             return window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, enc.encode(SECRET_KEY));
           })
           .then((encrypted) => {
             E_secret_key = _arrayBufferToBase64(encrypted);
-            // console.log(E_secret_key);
-            // console.log(E_end_point);
             var content = `${E_secret_key} ${E_end_point}`
             ws.send(JSON.stringify({"type":"ACK","content":content,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
           })
@@ -156,4 +152,6 @@ function connectAsClient(DESKTOP_ID) {
   ws.onopen = () => {
     console.log('CONNECTED');
   }
+
+  return ws;
 }
