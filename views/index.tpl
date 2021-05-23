@@ -19,7 +19,19 @@
     <div>SERVER ID: <span id="server_id"></span></div>
     <div>CLIENT ID: <span id="client_id"></span></div>
     <input tabIndex="0" id="title" type="text" placeholder="title" class="nav" style="margin:0 0 10px 0;"/>
+
     <input tabIndex="1" id="body" type="text" placeholder="body" class="nav" style="margin:0 0 10px 0;" maxlength="160" />
+
+    <select name="type" id="type" style="margin:0 0 10px 0;">
+      <option value="">Select type</option>
+      <option value="1">Message</option>
+      <option value="2">Whatsapp</option>
+    </select>
+
+    <select name="device" id="device" style="margin:0 0 10px 0;">
+      <option value="">Select device</option>
+    </select>
+
     <div>
       <button style="margin-bottom:10px;" onclick="triggerPushNotification()">Call to Push</button>
       <button style="margin-bottom:10px;" onclick="subscribePushNotification()">SoftLeft to Sub</button>
