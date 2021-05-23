@@ -68,6 +68,21 @@ function connectAsDesktop() {
               push_endpoint: JSON.parse(originalText),
               secret_key: sk
             };
+            console.log(sk);
+            while(DEVICE_DOM.firstChild) {
+              DEVICE_DOM.removeChild(DEVICE_DOM.firstChild);
+            }
+            var opt = document.createElement('option');
+            opt.value = "";
+            opt.innerHTML = "Select device";
+            DEVICE_DOM.appendChild(opt);
+            for (var d in CONNECTED_CLIENTS) {
+              var opt = document.createElement('option');
+              opt.value = d;
+              opt.innerHTML = CONNECTED_CLIENTS[d].client_name;
+              DEVICE_DOM.appendChild(opt);
+            }
+
             ws.send(JSON.stringify({"type":"RES","content":"true","to":parseInt(data.from),"from":WEBSOCKET_ID}))
             console.log(CONNECTED_CLIENTS);
           })

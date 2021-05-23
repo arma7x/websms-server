@@ -2,12 +2,12 @@
 
 let swRegistration = null;
 
-const secret = '432646294A404E635266556A586E3272357538782F4125442A472D4B61506453';
-
 const publicVapidKey = 'BJ6Rlb2Fa88-cH6awnZO22d4DxvQ-nCLt_-itQcIPHO0mIfSSA921yCtCj7zyNd3OOyeOrp9Pf0Ole6_K2-6wTg'
 
 let subscriptionObj = null;
 
+const DEVICE_DOM = document.getElementById('device')
+const TYPE_DOM = document.getElementById('type')
 const subscriptionDetails = document.getElementById('js-subscription-details')
 subscriptionDetails.value = 'Hello'
 
@@ -74,15 +74,34 @@ function unsubscribePushNotification() {
 
 function triggerPushNotification() {
 
-  if (subscriptionObj == null) 
+  //if (subscriptionObj == null) 
+  //  return
+
+  var _type;
+  var _subscriptionObj;
+  var _secret;
+
+  if (TYPE_DOM.value == "") {
+    alert('Please select type');
     return
-  
+  } else {
+    _type = parseInt(TYPE_DOM.value)
+  }
+
+  if (!CONNECTED_CLIENTS[DEVICE_DOM.value] || DEVICE_DOM.value == "") {
+    alert('No Recipeint');
+    return
+  } else {
+    _subscriptionObj = CONNECTED_CLIENTS[DEVICE_DOM.value].push_endpoint;
+    _secret = CONNECTED_CLIENTS[DEVICE_DOM.value].secret_key;
+  }
+  console.log('ENCRYPT USING', _secret);
   subscriptionDetails.value = 'Please wait'
 
   var raw_body = document.getElementById('body').value !== "" ? document.getElementById('body').value : 'Push notifications with Service Workers';
-  var ciphertext = CryptoJS.AES.encrypt(raw_body, secret).toString();
+  var ciphertext = CryptoJS.AES.encrypt(raw_body, _secret).toString();
 
-  const subs = encodeURIComponent(JSON.stringify(subscriptionObj));
+  const subs = encodeURIComponent(JSON.stringify(_subscriptionObj));
   const title = encodeURIComponent(document.getElementById('title').value !== "" ? document.getElementById('title').value : 'Push Notification');
   const body = encodeURIComponent(JSON.stringify(splitSMS(ciphertext, 1)));
   
@@ -127,8 +146,8 @@ function connectToDesktop() {
   }
 }
 
-function refreshIdb() {
-  subscriptionDetails.value = '';
+function getFromDB() {
+  subscriptionDetails.value = null;
   dbInstance
   .then((db) => {
     db.getAllKeys(TABLE_DOM)
@@ -136,12 +155,39 @@ function refreshIdb() {
       keys.forEach((key) => {
         db.get(TABLE_DOM, key)
         .then((val) => {
-          var bytes  = CryptoJS.AES.decrypt(val[2], secret);
+          console.log('DECRYPT USING', SECRET_KEY);
+          var bytes  = CryptoJS.AES.decrypt(val[2], SECRET_KEY);
           var originalText = bytes.toString(CryptoJS.enc.Utf8);
           subscriptionDetails.value += '->' + originalText + '\n'
         });
       });
     });
+  })
+  .catch((e) => {
+    console.log(e.toString());
+  })
+}
+
+function removeFromDB(key) {
+  dbInstance
+  .then((db) => {
+    return db.delete(TABLE_DOM, key);
+  })
+  .then(() => {
+    console.log("REMOVED", key);
+  })
+  .catch((e) => {
+    console.log(e.toString());
+  })
+}
+
+function flushDB() {
+  dbInstance
+  .then((db) => {
+    return Promise.all([db.clear(TABLE_SW), db.clear(TABLE_DOM)])
+  })
+  .then(() => {
+    console.log("FLUSH DB");
   })
   .catch((e) => {
     console.log(e.toString());

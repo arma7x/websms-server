@@ -33,12 +33,24 @@
     </select>
 
     <div>
-      <button style="margin-bottom:10px;" onclick="triggerPushNotification()">Call to Push</button>
       <button style="margin-bottom:10px;" onclick="subscribePushNotification()">SoftLeft to Sub</button>
       <button style="margin-bottom:10px;" onclick="unsubscribePushNotification()">SoftRight to Unsub</button>
+    </div>
+
+    <div>
+      <button style="margin-bottom:10px;" onclick="triggerPushNotification()">Call to Push</button>
       <button style="margin-bottom:10px;" onclick="connectAsDesktop()">Connect As Desktop</button>
+    </div>
+
+    <div>
       <button style="margin-bottom:10px;" onclick="connectToDesktop()">Connect To Desktop</button>
     </div>
+
+    <div>
+      <button style="margin-bottom:10px;" onclick="getFromDB()">Get from DB</button>
+      <button style="margin-bottom:10px;" onclick="flushDB()">Flush DB</button>
+    </div>
+
     <textarea tabIndex="2" id="js-subscription-details" class="nav" rows="8" cols="18" readonly></textarea>
   </div>
 
