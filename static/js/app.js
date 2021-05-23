@@ -193,7 +193,23 @@ function flushDB() {
     console.log(e.toString());
   })
 }
+flushDB();
 
+window.addEventListener("load", () => {
+  const SERVER = document.getElementsByClassName('__server__');
+  const CLIENT = document.getElementsByClassName('__client__');
+  if (ISCLIENT) {
+    for (var x in SERVER) {
+      if (SERVER[x].style)
+        SERVER[x].style.display = 'none';
+    }
+  } else {
+    for (var x in CLIENT) {
+      if (CLIENT[x].style)
+        CLIENT[x].style.display = 'none';
+    }
+  }
+});
 
 if ('serviceWorker' in navigator && 'PushManager' in window) {
   console.log('Service Worker and Push is supported');

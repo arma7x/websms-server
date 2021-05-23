@@ -113,6 +113,13 @@ func listening() {
 							if msg_txt, err := json.Marshal(msg); err == nil {
 								conn.WriteMessage(websocket.TextMessage, msg_txt)
 							}
+						} else {
+							msg.Type = "RES"
+							msg.Content = "false"
+							me, _ := clients[msg.From]
+							if msg_txt, err := json.Marshal(msg); err == nil {
+								me.WriteMessage(websocket.TextMessage, msg_txt)
+							}
 						}
 						break
 				}
@@ -169,29 +176,3 @@ func HandleWebsocketRequest (ctx *context.Context) {
 		}
 	}
 }
-
-// type    CONNECTED
-// content ID
-// to		-> Desktop
-// from -> KaiOS
-
-// type    SYN
-// content
-// to		-> Desktop
-// from -> KaiOS
-
-// type    SYN-ACK
-// content public_key
-// to		-> KaiOS
-// from	-> Desktop
-
-// type    ACK
-// content public_key(secret_key) && secret_key(push_endpoint)
-// to		-> Desktop
-// from -> KaiOS
-
-// type    RES
-// content true OR false
-// to		-> Desktop
-// from -> KaiOS
-

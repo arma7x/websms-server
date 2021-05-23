@@ -4,6 +4,8 @@ import (
 	_ "websms/routers"
 	"github.com/beego/beego/v2/server/web/context"
 	beego "github.com/beego/beego/v2/server/web"
+	"strconv"
+	"os"
 )
 
 func main() {
@@ -21,6 +23,10 @@ func main() {
 		beego.BeforeRouter,
 		corsCallback,
 	)
+	port, err := strconv.Atoi(os.Getenv("PORT"))
+	if err == nil {
+		beego.BConfig.Listen.HTTPPort = port
+	}
 	beego.Run()
 }
 

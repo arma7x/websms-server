@@ -2,6 +2,12 @@
 
 const serverID = document.getElementById('server_id')
 const clientID = document.getElementById('client_id')
+let WS_SERVER = document.location.origin.replace('https', '').replace('http', '') + "/ws";
+if (document.location.origin.indexOf('https') > -1) {
+  WS_SERVER = 'wss' + WS_SERVER;
+} else {
+  WS_SERVER = 'ws' + WS_SERVER;
+}
 
 console.log(`%cStop! Don't paste any code here`, 'color: red; font-size: 30px; font-weight: bold;');
 
@@ -29,7 +35,7 @@ function connectAsDesktop() {
     console.error(err);
   });
 
-  const ws = new WebSocket('ws://127.0.0.1:8080/ws');
+  const ws = new WebSocket(WS_SERVER);
   ws.onclose = () => {
     WEBSOCKET_ID = null;
     serverID.textContent = WEBSOCKET_ID
@@ -52,6 +58,7 @@ function connectAsDesktop() {
             ws.send(JSON.stringify({"type":"SYN-ACK","content":PUBLIC_KEY,"to":parseInt(data.from),"from":WEBSOCKET_ID}))
           } else {
             ws.send(JSON.stringify({"type":"RES","content":"false","to":parseInt(data.from),"from":WEBSOCKET_ID}))
+            ws.close();
           }
           
           break
@@ -109,7 +116,7 @@ function connectAsDesktop() {
 function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
   if (!DESKTOP_ID)
     return
-  const ws = new WebSocket('ws://127.0.0.1:8080/ws');
+  const ws = new WebSocket(WS_SERVER);
   ws.onclose = () => {
     WEBSOCKET_ID = null;
     clientID.textContent = WEBSOCKET_ID

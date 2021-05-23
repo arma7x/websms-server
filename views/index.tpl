@@ -6,52 +6,55 @@
   <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    const ISCLIENT = {{ .isClient }}
+  </script>
 </head>
 
 <body>
   <header>
     <h1 class="logo">Welcome to WebSMS</h1>
     <div class="description">
-      Beego is a simple & powerful Go web framework which is inspired by tornado and sinatra.
+      Write SMS on browser
     </div>
   </header>
   <div class="container" style="padding:10px;">
-    <div>SERVER ID: <span id="server_id"></span></div>
-    <div>CLIENT ID: <span id="client_id"></span></div>
-    <input tabIndex="0" id="title" type="text" placeholder="title" class="nav" style="margin:0 0 10px 0;"/>
 
-    <input tabIndex="1" id="body" type="text" placeholder="body" class="nav" style="margin:0 0 10px 0;" maxlength="160" />
+    <div class="__server__">SERVER ID: <span id="server_id"></span></div>
+    <div class="__client__">CLIENT ID: <span id="client_id"></span></div>
 
-    <select name="type" id="type" style="margin:0 0 10px 0;">
-      <option value="">Select type</option>
-      <option value="1">Message</option>
-      <option value="2">Whatsapp</option>
-    </select>
-
-    <select name="device" id="device" style="margin:0 0 10px 0;">
-      <option value="">Select device</option>
-    </select>
-
-    <div>
-      <button style="margin-bottom:10px;" onclick="subscribePushNotification()">SoftLeft to Sub</button>
-      <button style="margin-bottom:10px;" onclick="unsubscribePushNotification()">SoftRight to Unsub</button>
+    <div class="__server__ container">
+      <input id="title" type="text" placeholder="title" class="nav" style="margin:0 0 10px 0;"/>
+      <input id="body" type="text" placeholder="body" class="nav" style="margin:0 0 10px 0;" maxlength="160" />
+      <select name="type" id="type" style="margin:0 0 10px 0;">
+        <option value="">Select type</option>
+        <option value="1">Message</option>
+        <option value="2">Whatsapp</option>
+      </select>
+      <select name="device" id="device" style="margin:0 0 10px 0;">
+        <option value="">Select device</option>
+      </select>
     </div>
 
-    <div>
-      <button style="margin-bottom:10px;" onclick="triggerPushNotification()">Call to Push</button>
+    <div class="__server__ container">
+      <button style="margin-bottom:10px;" onclick="triggerPushNotification()">Push</button>
       <button style="margin-bottom:10px;" onclick="connectAsDesktop()">Connect As Desktop</button>
     </div>
 
-    <div>
+    <div class="__client__ container">
+      <button style="margin-bottom:10px;" onclick="subscribePushNotification()">Subscribe</button>
+      <button style="margin-bottom:10px;" onclick="unsubscribePushNotification()">Unsubscribe</button>
       <button style="margin-bottom:10px;" onclick="connectToDesktop()">Connect To Desktop</button>
     </div>
 
-    <div>
+    <div class="__client__ container">
       <button style="margin-bottom:10px;" onclick="getFromDB()">Get from DB</button>
       <button style="margin-bottom:10px;" onclick="flushDB()">Flush DB</button>
     </div>
 
-    <textarea tabIndex="2" id="js-subscription-details" class="nav" rows="8" cols="18" readonly></textarea>
+    <div class="container">
+      <textarea id="js-subscription-details" class="nav" rows="8" cols="18" readonly></textarea>
+    </div>
   </div>
 
   <script src="/static/js/helper.js"></script>
