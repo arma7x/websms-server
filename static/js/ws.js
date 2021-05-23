@@ -132,7 +132,19 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
         case "CONNECTED":
           WEBSOCKET_ID = parseInt(data.content);
           clientID.textContent = WEBSOCKET_ID
-          ws.send(JSON.stringify({"type":"SYN","content":CLIENT_NAME,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
+          swRegistration.pushManager.getSubscription()
+          .then(function(subscription) {
+            if (subscription) {
+              ws.send(JSON.stringify({"type":"SYN","content":CLIENT_NAME,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
+            } else {
+              console.log('No Push Subscription');
+              ws.close();
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            ws.close();
+          });
           break
         case "SYN-ACK":
           if (data.from && DESKTOP_ID && swRegistration) {
