@@ -6,36 +6,6 @@ var WEBSOCKET_ID
 var SECRET_KEY
 var CONNECTED_CLIENTS = {};
 
-function dec2hex(dec) {
-  return dec.toString(16).padStart(2, "0");
-}
-
-function generateId(len) {
-  var arr = new Uint8Array((len || 40) / 2);
-  window.crypto.getRandomValues(arr);
-  return Array.from(arr, dec2hex).join('');
-}
-
-function _arrayBufferToBase64(buffer) {
-  var binary = '';
-  var bytes = new Uint8Array( buffer );
-  var len = bytes.byteLength;
-  for (var i = 0; i < len; i++) {
-    binary += String.fromCharCode( bytes[ i ] );
-  }
-  return window.btoa( binary );
-}
-
-function _base64ToArrayBuffer(base64) {
-  var binary_string = window.atob(base64);
-  var len = binary_string.length;
-  var bytes = new Uint8Array(len);
-  for (var i = 0; i < len; i++) {
-    bytes[i] = binary_string.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
 SECRET_KEY = generateId(64);
 
 function connectAsDesktop() {

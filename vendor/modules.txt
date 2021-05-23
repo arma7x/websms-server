@@ -1,6 +1,18 @@
 # github.com/SherClockHolmes/webpush-go v1.1.2
 ## explicit
 github.com/SherClockHolmes/webpush-go
+# github.com/astaxie/beego v1.12.3
+## explicit
+github.com/astaxie/beego
+github.com/astaxie/beego/config
+github.com/astaxie/beego/context
+github.com/astaxie/beego/context/param
+github.com/astaxie/beego/grace
+github.com/astaxie/beego/logs
+github.com/astaxie/beego/plugins/cors
+github.com/astaxie/beego/session
+github.com/astaxie/beego/toolbox
+github.com/astaxie/beego/utils
 # github.com/beego/beego/v2 v2.0.1
 ## explicit
 github.com/beego/beego/v2

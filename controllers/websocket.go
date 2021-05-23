@@ -19,6 +19,16 @@ var (
 	disconnected = make(chan *websocket.Conn)
 )
 
+var (
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+)
+
 func init() {
 	go listening()
 }
@@ -118,7 +128,7 @@ func HandleWebsocketRequest (ctx *context.Context) {
 		return
 	}
 	
-	ws, err := websocket.Upgrade(ctx.ResponseWriter, ctx.Request, nil, 1024, 1024)
+	ws, err := upgrader.Upgrade(ctx.ResponseWriter, ctx.Request, nil)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(ctx.ResponseWriter, "Not a websocket handshake", 400)
 		return

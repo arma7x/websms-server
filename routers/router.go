@@ -8,11 +8,12 @@ import (
   beego "github.com/beego/beego/v2/server/web"
   webpush "github.com/SherClockHolmes/webpush-go"
   "os"
+  "fmt"
 )
 
 type Payload struct {
   Title string `json:"title"`
-  Body  []string `json:"body"`
+  Body  string `json:"body"`
 }
 
 func init() {
@@ -22,36 +23,41 @@ func init() {
 
   beego.Get("/push", func(ctx *context.Context) {
     subscription := ctx.Input.Query("subscription")
-    s := &webpush.Subscription{}
-    json.Unmarshal([]byte(subscription), s)
+    sub := &webpush.Subscription{}
+    json.Unmarshal([]byte(subscription), sub)
 
-    payload := &Payload{}
-    payload.Title = "Title"
-    if ctx.Input.Query("title") != "" {
-      payload.Title = ctx.Input.Query("title")
-    }
-    payload.Body = []string{}
-    if ctx.Input.Query("body") != "" {
-      var arr []string
-      if err := json.Unmarshal([]byte(ctx.Input.Query("body")), &arr); err == nil {
-        payload.Body = arr
+    var arr []string
+    json.Unmarshal([]byte(ctx.Input.Query("body")), &arr);
+
+    fmt.Println(string("\033[32m"), ctx.Input.Query("subscription"), ctx.Input.Query("title"), ctx.Input.Query("body"))
+
+    exec := func(body string) {
+      payload := &Payload{}
+      payload.Title = "Title"
+      if ctx.Input.Query("title") != "" {
+        payload.Title = ctx.Input.Query("title")
+      }
+      payload.Body = body
+      msg, _ := json.Marshal(payload)
+      fmt.Println(string("\033[35m"), payload.Title, payload.Body)
+      resp, err := webpush.SendNotification([]byte(msg), sub, &webpush.Options{
+        Subscriber:      os.Getenv("VAPIDSubscriber"),
+        VAPIDPublicKey:  os.Getenv("VAPIDPublicKey"),
+        VAPIDPrivateKey: os.Getenv("VAPIDPrivateKey"),
+        TTL:             60,
+      })
+      if err != nil {
+        log.Println(err)
+      } else {
+        defer resp.Body.Close()
       }
     }
-    msg, _ := json.Marshal(payload)
 
-    resp, err := webpush.SendNotification([]byte(msg), s, &webpush.Options{
-      Subscriber:      os.Getenv("VAPIDSubscriber"),
-      VAPIDPublicKey:  os.Getenv("VAPIDPublicKey"),
-      VAPIDPrivateKey: os.Getenv("VAPIDPrivateKey"),
-      TTL:             60,
-    })
-    if err != nil {
-      log.Println(err)
-    } else {
-      resp.Body.Close()
+    for _, txt := range arr {
+      go exec(txt);
     }
 
-    ctx.Output.Body([]byte(subscription))
+    ctx.Output.JSON(subscription, false, true)
   })
 
   beego.Router("/", &controllers.MainController{})
