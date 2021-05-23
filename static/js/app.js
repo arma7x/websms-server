@@ -164,8 +164,7 @@ function handleKeydown(e) {
             .then((val) => {
               var bytes  = CryptoJS.AES.decrypt(val[2], secret);
               var originalText = bytes.toString(CryptoJS.enc.Utf8);
-              console.log(key, val, originalText);
-              subscriptionDetails.value += originalText + '\n\n'
+              subscriptionDetails.value += '->' + originalText + '\n'
             });
           });
         });
