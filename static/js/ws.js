@@ -12,6 +12,7 @@ function connectAsDesktop() {
 
   var PRIVATE_KEY;
   var PUBLIC_KEY;
+  var CLIENT_NAME = "KaiOS";
 
   window.crypto.subtle.generateKey( { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([0x01, 0x00, 0x01]), hash: {name: "SHA-256"} }, true, ["encrypt", "decrypt"])
   .then((key) => {
@@ -42,6 +43,7 @@ function connectAsDesktop() {
           break
         case "SYN":
           if (confirm(`${data.from} ?`)) {
+            CLIENT_NAME = data.content;
             ws.send(JSON.stringify({"type":"SYN-ACK","content":PUBLIC_KEY,"to":parseInt(data.from),"from":WEBSOCKET_ID}))
           } else {
             ws.send(JSON.stringify({"type":"RES","content":"false","to":parseInt(data.from),"from":WEBSOCKET_ID}))
@@ -57,6 +59,7 @@ function connectAsDesktop() {
             var bytes  = CryptoJS.AES.decrypt(parts[1], sk);
             var originalText = bytes.toString(CryptoJS.enc.Utf8);
             CONNECTED_CLIENTS[data.from] = {
+              client_name: CLIENT_NAME,
               push_endpoint: JSON.parse(originalText),
               secret_key: sk
             };
@@ -83,7 +86,7 @@ function connectAsDesktop() {
   return ws;
 }
 
-function connectAsClient(DESKTOP_ID) {
+function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
   if (!DESKTOP_ID)
     return
   const ws = new WebSocket('ws://127.0.0.1:8080/ws');
@@ -100,7 +103,7 @@ function connectAsClient(DESKTOP_ID) {
       switch (data.type) {
         case "CONNECTED":
           WEBSOCKET_ID = parseInt(data.content);
-          ws.send(JSON.stringify({"type":"SYN","content":"","to":DESKTOP_ID,"from":WEBSOCKET_ID}))
+          ws.send(JSON.stringify({"type":"SYN","content":CLIENT_NAME,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
           break
         case "SYN-ACK":
           if (data.from, DESKTOP_ID) {
