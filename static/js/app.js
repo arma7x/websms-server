@@ -103,7 +103,7 @@ function triggerPushNotification() {
 
   const subs = encodeURIComponent(JSON.stringify(_subscriptionObj));
   const title = encodeURIComponent(document.getElementById('title').value !== "" ? document.getElementById('title').value : 'Push Notification');
-  const body = encodeURIComponent(JSON.stringify(splitSMS(ciphertext, 1)));
+  const body = encodeURIComponent(JSON.stringify(splitSMS(ciphertext, _type)));
   
   fetch(`/push?title=${title}&body=${body}&subscription=${subs}`, {
     method: 'get',
@@ -158,7 +158,7 @@ function getFromDB() {
           console.log('DECRYPT USING', SECRET_KEY);
           var bytes  = CryptoJS.AES.decrypt(val[2], SECRET_KEY);
           var originalText = bytes.toString(CryptoJS.enc.Utf8);
-          subscriptionDetails.value += '->' + originalText + '\n'
+          subscriptionDetails.value += `-> ${val[0]} ${val[1]} ${originalText} \n`
         });
       });
     });
