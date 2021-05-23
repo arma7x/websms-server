@@ -2,21 +2,9 @@
 
 <html>
 <head>
-  <title>Beego</title>
+  <title>WebSMS</title>
+  <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
-  <style type="text/css">
-
-    .backdrop {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      box-shadow: inset 0px 0px 100px #ddd;
-      z-index: -1;
-      top: 0px;
-      left: 0px;
-    }
-  </style>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
@@ -28,13 +16,19 @@
     </div>
   </header>
   <div class="container" style="padding:10px;">
+    <div>SERVER ID: <span id="server_id"></span></div>
+    <div>CLIENT ID: <span id="client_id"></span></div>
     <input tabIndex="0" id="title" type="text" placeholder="title" class="nav" style="margin:0 0 10px 0;"/>
     <input tabIndex="1" id="body" type="text" placeholder="body" class="nav" style="margin:0 0 10px 0;" maxlength="160" />
-    <button class="trigger-push" onclick="triggerPushNotification()">Call to Push</button><br><br>
-    <button class="trigger-push" onclick="subscribePushNotification()">SoftLeft to Sub</button><br><br>
+    <div>
+      <button style="margin-bottom:10px;" onclick="triggerPushNotification()">Call to Push</button>
+      <button style="margin-bottom:10px;" onclick="subscribePushNotification()">SoftLeft to Sub</button>
+      <button style="margin-bottom:10px;" onclick="unsubscribePushNotification()">SoftRight to Unsub</button>
+      <button style="margin-bottom:10px;" onclick="connectAsDesktop()">Connect As Desktop</button>
+      <button style="margin-bottom:10px;" onclick="connectToDesktop()">Connect To Desktop</button>
+    </div>
     <textarea tabIndex="2" id="js-subscription-details" class="nav" rows="8" cols="18" readonly></textarea>
   </div>
-  <div class="backdrop"></div>
 
   <script src="/static/js/helper.js"></script>
   <script src="/static/js/regenerator-runtime.js"></script>

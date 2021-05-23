@@ -1,5 +1,8 @@
 // {"type":"CONNECTED","content":"799523","to":0,"from":0}
 
+const serverID = document.getElementById('server_id')
+const clientID = document.getElementById('client_id')
+
 console.log(`%cStop! Don't paste any code here`, 'color: red; font-size: 30px; font-weight: bold;');
 
 var WEBSOCKET_ID
@@ -29,6 +32,7 @@ function connectAsDesktop() {
   const ws = new WebSocket('ws://127.0.0.1:8080/ws');
   ws.onclose = () => {
     WEBSOCKET_ID = null;
+    serverID.textContent = WEBSOCKET_ID
     console.log('An event listener to be called when the connection is closed.');
   }
   ws.onerror = () => {
@@ -40,6 +44,7 @@ function connectAsDesktop() {
       switch (data.type) {
         case "CONNECTED":
           WEBSOCKET_ID = parseInt(data.content);
+          serverID.textContent = WEBSOCKET_ID
           break
         case "SYN":
           if (confirm(`${data.from} ?`)) {
@@ -92,6 +97,7 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
   const ws = new WebSocket('ws://127.0.0.1:8080/ws');
   ws.onclose = () => {
     WEBSOCKET_ID = null;
+    clientID.textContent = WEBSOCKET_ID
     console.log('An event listener to be called when the connection is closed.');
   }
   ws.onerror = () => {
@@ -103,17 +109,29 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
       switch (data.type) {
         case "CONNECTED":
           WEBSOCKET_ID = parseInt(data.content);
+          clientID.textContent = WEBSOCKET_ID
           ws.send(JSON.stringify({"type":"SYN","content":CLIENT_NAME,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
           break
         case "SYN-ACK":
-          if (data.from, DESKTOP_ID) {
+          if (data.from && DESKTOP_ID && swRegistration) {
             let enc = new TextEncoder();
-            let E_end_point = CryptoJS.AES.encrypt(JSON.stringify({url: 'https://push.kaiostech.com:8443/wpush/v2'}) , SECRET_KEY).toString();
+            let E_end_point;
             let E_secret_key;
             let pub = _base64ToArrayBuffer(data.content);
-            window.crypto.subtle.importKey("spki", pub, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, false, ["encrypt"])
-            .then((publicKey) => {
-              return window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, enc.encode(SECRET_KEY));
+            swRegistration.pushManager.getSubscription()
+            .then(function(subscription) {
+              if (subscription) {
+                E_end_point = CryptoJS.AES.encrypt(JSON.stringify(subscription) , SECRET_KEY).toString();
+                return Promise.resolve();
+              } else {
+                return Promise.reject('No Push Subscription');
+              }
+            })
+            .then(() => {
+              return window.crypto.subtle.importKey("spki", pub, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, false, ["encrypt"])
+              .then((publicKey) => {
+                return window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, enc.encode(SECRET_KEY));
+              })
             })
             .then((encrypted) => {
               E_secret_key = _arrayBufferToBase64(encrypted);
@@ -128,7 +146,7 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
           }
           break
         case "RES":
-          console.log(data.content);
+          alert(data.content);
           ws.close();
           break
       }

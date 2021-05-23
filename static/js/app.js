@@ -104,78 +104,50 @@ function triggerPushNotification() {
   });
 }
 
-function nav (move) {
-  const currentIndex = document.activeElement.tabIndex
-  const next = currentIndex + move
-  const nav = document.querySelectorAll('.nav')
-  var targetElement = nav[next]
-  if (targetElement !== undefined) {
-    console.log(currentIndex)
-    targetElement.focus()
-  } else {
-    targetElement = nav[0]
-    targetElement.focus()
+function isBlank(str) {
+  return (!str || /^\s*$/.test(str));
+}
+
+function connectToDesktop() {
+  const name = prompt('Name ?');
+  if (isBlank(name)) {
+    alert('Name is required');
+    return
+  }
+  const desktop_id = prompt('Desktop ID ?');
+  if (isBlank(desktop_id)) {
+    alert('Desktop ID is required');
+    return
+  }
+  try {
+    const _id = JSON.parse(desktop_id);
+    connectAsClient(name, _id);
+  } catch(e) {
+    alert('Desktop ID must be a number');
   }
 }
 
-function handleKeydown(e) {
-  switch(e.key) {
-    case '2':
-      unsubscribePushNotification()
-      break
-    case 'ArrowUp':
-      nav(-1)
-      break
-    case 'ArrowDown':
-      nav(1)
-      break
-    case "SoftRight":
-      document.activeElement.blur()
-      break
-    case "SoftLeft":
-    case "1":
-      subscribePushNotification()
-      break
-    case "BrowserBack":
-    case "Backspace":
-      e.preventDefault()
-      e.stopPropagation()
-      if (document.activeElement.tagName === 'INPUT') {
-        if (document.activeElement.value === '') {
-          document.activeElement.blur()
-        }
-      } else if (document.activeElement.tagName === 'TEXTAREA') {
-        document.activeElement.blur()
-      } else {
-        window.close()
-      }
-      break
-    case "Call":
-      triggerPushNotification()
-      break
-    case "Enter":
-      subscriptionDetails.value = '';
-      dbInstance
-      .then((db) => {
-        db.getAllKeys(TABLE_DOM)
-        .then((keys) => {
-          keys.forEach((key) => {
-            db.get(TABLE_DOM, key)
-            .then((val) => {
-              var bytes  = CryptoJS.AES.decrypt(val[2], secret);
-              var originalText = bytes.toString(CryptoJS.enc.Utf8);
-              subscriptionDetails.value += '->' + originalText + '\n'
-            });
-          });
+function refreshIdb() {
+  subscriptionDetails.value = '';
+  dbInstance
+  .then((db) => {
+    db.getAllKeys(TABLE_DOM)
+    .then((keys) => {
+      keys.forEach((key) => {
+        db.get(TABLE_DOM, key)
+        .then((val) => {
+          var bytes  = CryptoJS.AES.decrypt(val[2], secret);
+          var originalText = bytes.toString(CryptoJS.enc.Utf8);
+          subscriptionDetails.value += '->' + originalText + '\n'
         });
-      })
-      .catch((e) => {
-        console.log(e.toString());
-      })
-      break
-  }
+      });
+    });
+  })
+  .catch((e) => {
+    console.log(e.toString());
+  })
 }
-document.activeElement.addEventListener('keydown', handleKeydown)
+
 
 if ('serviceWorker' in navigator && 'PushManager' in window) {
   console.log('Service Worker and Push is supported');
