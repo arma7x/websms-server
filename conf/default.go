@@ -10,6 +10,6 @@ func init() {
 	if SERVER_ENV != "" {
 		beego.AppConfig.Set("runmode", SERVER_ENV)
 	} else {
-		beego.AppConfig.Set("runmode", "dev")
+		beego.AppConfig.Set("runmode", "prod")
 	}
 }
