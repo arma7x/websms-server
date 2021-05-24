@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "websms/routers"
+	_ "websms/conf"
 	"github.com/beego/beego/v2/server/web/context"
 	beego "github.com/beego/beego/v2/server/web"
 	"strconv"
