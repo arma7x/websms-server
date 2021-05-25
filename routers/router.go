@@ -2,13 +2,15 @@ package routers
 
 import (
   "encoding/json"
-  "log"
+  // "log"
   "websms/controllers"
   "github.com/beego/beego/v2/server/web/context"
   beego "github.com/beego/beego/v2/server/web"
-  webpush "github.com/SherClockHolmes/webpush-go"
+  // webpush "github.com/SherClockHolmes/webpush-go"
   "os"
   "fmt"
+  "net/http"
+  "bytes"
 )
 
 type Payload struct {
@@ -22,14 +24,13 @@ func init() {
   })
 
   beego.Get("/push", func(ctx *context.Context) {
+    publicVapidKey := os.Getenv("VAPIDPublicKey")
+    privateVapidKey := os.Getenv("VAPIDPrivateKey")
+    encoding := "aesgcm"
     subscription := ctx.Input.Query("subscription")
-    sub := &webpush.Subscription{}
-    json.Unmarshal([]byte(subscription), sub)
 
     var arr []string
     json.Unmarshal([]byte(ctx.Input.Query("body")), &arr);
-
-    fmt.Println(string("\033[32m"), ctx.Input.Query("subscription"), ctx.Input.Query("title"), ctx.Input.Query("body"))
 
     exec := func(body string) {
       payload := &Payload{}
@@ -39,17 +40,24 @@ func init() {
       }
       payload.Body = body
       msg, _ := json.Marshal(payload)
-      fmt.Println(string("\033[35m"), payload.Title, payload.Body)
-      resp, err := webpush.SendNotification([]byte(msg), sub, &webpush.Options{
-        Subscriber:      os.Getenv("VAPIDSubscriber"),
-        VAPIDPublicKey:  os.Getenv("VAPIDPublicKey"),
-        VAPIDPrivateKey: os.Getenv("VAPIDPrivateKey"),
-        TTL:             60,
-      })
+
+      message := map[string]interface{} {
+        "publicVapidKey": publicVapidKey,
+        "privateVapidKey": privateVapidKey,
+        "encoding": encoding,
+        "payload": string(msg),
+        "subscription": subscription,
+      }
+
+      bytesRepresentation, err := json.Marshal(message)
       if err != nil {
-        log.Println(err)
-      } else {
-        defer resp.Body.Close()
+        fmt.Println(err)
+      }
+
+      resp, err := http.Post("https://kai-push-notification.herokuapp.com/push", "application/json", bytes.NewBuffer(bytesRepresentation))
+      defer resp.Body.Close()
+      if err != nil {
+        fmt.Println(err)
       }
     }
 
