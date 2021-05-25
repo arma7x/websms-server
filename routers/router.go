@@ -19,8 +19,16 @@ type Payload struct {
 }
 
 func init() {
+  
   beego.Any("/ws", func(ctx *context.Context) {
     controllers.HandleWebsocketRequest(ctx)
+  })
+
+  beego.Options("*", func(ctx *context.Context) {
+    ctx.ResponseWriter.Header().Add("Access-Control-Allow-Origin", "*")
+		ctx.ResponseWriter.Header().Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Accept-Encoding, Accept-Language")
+		ctx.ResponseWriter.Header().Add("Access-Control-Allow-Methods", "GET, PUT, PATCH, POST, DELETE, HEAD, OPTIONS")
+    ctx.Output.JSON("{}", false, true)
   })
 
   beego.Get("/push", func(ctx *context.Context) {
