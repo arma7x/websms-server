@@ -141,7 +141,7 @@ function connectAsDesktop() {
             }
 
             let E_end_point;
-            peerConnection.setRemoteDescription(JSON.parse(originalText))
+            peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(originalText)))
             .then(() => {
               return peerConnection.createAnswer();
             })
@@ -283,7 +283,7 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
         case "RES":
           var bytes  = CryptoJS.AES.decrypt(decodeURIComponent(data.content), SECRET_KEY);
           var originalText = bytes.toString(CryptoJS.enc.Utf8);
-          peerConnection.setRemoteDescription(JSON.parse(originalText));
+          peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(originalText)));
           // console.log(JSON.parse(originalText));
           // ws.close();
           break
