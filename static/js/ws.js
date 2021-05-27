@@ -1,3 +1,4 @@
+console.log(`%cStop! Don't paste any code here`, 'color: red; font-size: 30px; font-weight: bold;');
 // {"type":"CONNECTED","content":"799523","to":0,"from":0}
 
 const serverID = document.getElementById('server_id')
@@ -9,19 +10,52 @@ if (document.location.origin.indexOf('https') > -1) {
   WS_SERVER = 'ws' + WS_SERVER;
 }
 
-console.log(`%cStop! Don't paste any code here`, 'color: red; font-size: 30px; font-weight: bold;');
-
 var WEBSOCKET_ID
-var SECRET_KEY
+var SECRET_KEY = generateId(64);
 var CONNECTED_CLIENTS = {};
-
-SECRET_KEY = generateId(64);
 
 function connectAsDesktop() {
 
   var PRIVATE_KEY;
   var PUBLIC_KEY;
   var CLIENT_NAME = "KaiOS";
+  var CLIENT_ID;
+
+  function handleReceiveMessage(event) {
+    var parts = event.data.split(' ')
+    var bytes  = CryptoJS.AES.decrypt(parts[parts.length - 1], CONNECTED_CLIENTS[CLIENT_ID].secret_key);
+    var originalText = bytes.toString(CryptoJS.enc.Utf8);
+    subscriptionDetails.value += `\nClient => ${originalText}\n`;
+  }
+
+  function handleReceiveChannelStatusChange(event) {
+    if (receiveChannel) {
+      // console.log(receiveChannel);
+    }
+  }
+
+  function receiveChannelCallback(event) {
+    receiveChannel = event.channel;
+    receiveChannel.onmessage = handleReceiveMessage;
+    receiveChannel.onopen = handleReceiveChannelStatusChange;
+    receiveChannel.onclose = handleReceiveChannelStatusChange;
+  }
+
+  function handleSendChannelStatusChange(event) {
+    if (dataChannel) {
+      if(dataChannel.readyState === 'open') {
+        ws.close();
+      }
+    }
+  }
+
+  const ws = new WebSocket(WS_SERVER);
+
+  const peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  peerConnection.ondatachannel = receiveChannelCallback;
+  const dataChannel = peerConnection.createDataChannel("dataChannel", {reliable:true});
+  dataChannel.onopen = handleSendChannelStatusChange;
+  dataChannel.onclose = handleSendChannelStatusChange;
 
   window.crypto.subtle.generateKey( { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([0x01, 0x00, 0x01]), hash: {name: "SHA-256"} }, true, ["encrypt", "decrypt"])
   .then((key) => {
@@ -35,7 +69,13 @@ function connectAsDesktop() {
     console.error(err);
   });
 
-  const ws = new WebSocket(WS_SERVER);
+  peerConnection.onicecandidate = (iceEvent) => {
+    if (iceEvent.candidate) {
+      console.log(iceEvent.candidate);
+      ws.send(JSON.stringify({"type":"ONICECANDIDATE","content":encodeURIComponent(JSON.stringify(iceEvent.candidate)),"to":parseInt(CLIENT_ID),"from":WEBSOCKET_ID}))
+    }
+  };
+
   ws.onclose = () => {
     WEBSOCKET_ID = null;
     serverID.textContent = WEBSOCKET_ID
@@ -48,6 +88,16 @@ function connectAsDesktop() {
     try {
       data = JSON.parse(event.data)
       switch (data.type) {
+        case "ONICECANDIDATE":
+          var candidate = JSON.parse(decodeURIComponent(data.content))
+          if (candidate) {
+            try {
+              peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+              console.log(e, candidate);
+            }
+          }
+          break
         case "CONNECTED":
           WEBSOCKET_ID = parseInt(data.content);
           serverID.textContent = WEBSOCKET_ID
@@ -55,27 +105,27 @@ function connectAsDesktop() {
         case "SYN":
           if (confirm(`${data.from} ?`)) {
             CLIENT_NAME = data.content;
+            CLIENT_ID = parseInt(data.from)
             ws.send(JSON.stringify({"type":"SYN-ACK","content":PUBLIC_KEY,"to":parseInt(data.from),"from":WEBSOCKET_ID}))
           } else {
             ws.send(JSON.stringify({"type":"RES","content":"false","to":parseInt(data.from),"from":WEBSOCKET_ID}))
             ws.close();
           }
-          
           break
         case "ACK":
           let dec = new TextDecoder();
           var parts = data.content.split(' ');
           window.crypto.subtle.decrypt({ name: "RSA-OAEP" }, PRIVATE_KEY, _base64ToArrayBuffer(parts[0]))
           .then((decrypted) => {
-            var sk = dec.decode(new Uint8Array(decrypted));
-            var bytes  = CryptoJS.AES.decrypt(parts[1], sk);
+            var secret_key = dec.decode(new Uint8Array(decrypted));
+            var bytes  = CryptoJS.AES.decrypt(decodeURIComponent(parts[1]), secret_key);
             var originalText = bytes.toString(CryptoJS.enc.Utf8);
             CONNECTED_CLIENTS[data.from] = {
               client_name: CLIENT_NAME,
-              push_endpoint: JSON.parse(originalText),
-              secret_key: sk
+              secret_key: secret_key,
+              dataChannel: dataChannel
             };
-            console.log(sk);
+
             while(DEVICE_DOM.firstChild) {
               DEVICE_DOM.removeChild(DEVICE_DOM.firstChild);
             }
@@ -90,14 +140,27 @@ function connectAsDesktop() {
               DEVICE_DOM.appendChild(opt);
             }
 
-            ws.send(JSON.stringify({"type":"RES","content":"true","to":parseInt(data.from),"from":WEBSOCKET_ID}))
-            console.log(CONNECTED_CLIENTS);
+            let E_end_point;
+            peerConnection.setRemoteDescription(JSON.parse(originalText))
+            .then(() => {
+              return peerConnection.createAnswer();
+            })
+            .then(function(answerToClient) {
+              E_end_point = CryptoJS.AES.encrypt(JSON.stringify(answerToClient) , secret_key).toString();
+              return peerConnection.setLocalDescription(answerToClient);
+            })
+            .then(function() {
+              ws.send(JSON.stringify({"type":"RES","content":encodeURIComponent(E_end_point),"to":parseInt(data.from),"from":WEBSOCKET_ID}))
+            })
+            .catch((err) => {
+              ws.send(JSON.stringify({"type":"RES","content":"false","to":parseInt(data.from),"from":WEBSOCKET_ID}))
+              console.error(err);
+              ws.close()
+            })
           })
           .catch((err) => {
             ws.send(JSON.stringify({"type":"RES","content":"false","to":parseInt(data.from),"from":WEBSOCKET_ID}))
             console.error(err);
-          })
-          .finally(() => {
             ws.close()
           });
           break
@@ -110,13 +173,56 @@ function connectAsDesktop() {
     console.log('CONNECTED');
   }
 
-  return ws;
+  return {ws, peerConnection, dataChannel};
 }
 
 function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
   if (!DESKTOP_ID)
     return
+
+  function handleReceiveMessage(event) {
+    var parts = event.data.split(' ')
+    var bytes  = CryptoJS.AES.decrypt(parts[parts.length - 1], SECRET_KEY);
+    var originalText = bytes.toString(CryptoJS.enc.Utf8);
+    subscriptionDetails.value += `\nDesktop => ${originalText}\n`;
+  }
+
+  function handleReceiveChannelStatusChange(event) {
+    if (receiveChannel) {
+      // console.log(receiveChannel);
+    }
+  }
+
+  function receiveChannelCallback(event) {
+    receiveChannel = event.channel;
+    receiveChannel.onmessage = handleReceiveMessage;
+    receiveChannel.onopen = handleReceiveChannelStatusChange;
+    receiveChannel.onclose = handleReceiveChannelStatusChange;
+  }
+
+  function handleSendChannelStatusChange(event) {
+    if (dataChannel) {
+      if(dataChannel.readyState === 'open') {
+        ws.close();
+      }
+    }
+  }
+
   const ws = new WebSocket(WS_SERVER);
+
+  const peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  peerConnection.ondatachannel = receiveChannelCallback;
+  const dataChannel = peerConnection.createDataChannel("dataChannel", {reliable:true});
+  dataChannel.onopen = handleSendChannelStatusChange;
+  dataChannel.onclose = handleSendChannelStatusChange;
+
+  peerConnection.onicecandidate = (iceEvent) => {
+    if (iceEvent.candidate) {
+      console.log(iceEvent.candidate);
+      ws.send(JSON.stringify({"type":"ONICECANDIDATE","content":encodeURIComponent(JSON.stringify(iceEvent.candidate)),"to":parseInt(DESKTOP_ID),"from":WEBSOCKET_ID}))
+    }
+  };
+
   ws.onclose = () => {
     WEBSOCKET_ID = null;
     clientID.textContent = WEBSOCKET_ID
@@ -129,37 +235,32 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
     try {
       data = JSON.parse(event.data)
       switch (data.type) {
+        case "ONICECANDIDATE":
+          var candidate = JSON.parse(decodeURIComponent(data.content))
+          if (candidate) {
+            try {
+              peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+              console.log(e);
+              console.log(e, candidate);
+            }
+          }
+          break
         case "CONNECTED":
           WEBSOCKET_ID = parseInt(data.content);
           clientID.textContent = WEBSOCKET_ID
-          swRegistration.pushManager.getSubscription()
-          .then(function(subscription) {
-            if (subscription) {
-              ws.send(JSON.stringify({"type":"SYN","content":CLIENT_NAME,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
-            } else {
-              console.log('No Push Subscription');
-              ws.close();
-            }
-          })
-          .catch((err) => {
-            console.error(err);
-            ws.close();
-          });
+          ws.send(JSON.stringify({"type":"SYN","content":CLIENT_NAME,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
           break
         case "SYN-ACK":
-          if (data.from && DESKTOP_ID && swRegistration) {
+          if (data.from && DESKTOP_ID) {
             let enc = new TextEncoder();
             let E_end_point;
             let E_secret_key;
             let pub = _base64ToArrayBuffer(data.content);
-            swRegistration.pushManager.getSubscription()
-            .then(function(subscription) {
-              if (subscription) {
-                E_end_point = CryptoJS.AES.encrypt(JSON.stringify(subscription) , SECRET_KEY).toString();
-                return Promise.resolve();
-              } else {
-                return Promise.reject('No Push Subscription');
-              }
+            peerConnection.createOffer()
+            .then(function(offerToDesktop) {
+              E_end_point = CryptoJS.AES.encrypt(JSON.stringify(offerToDesktop) , SECRET_KEY).toString();
+              return peerConnection.setLocalDescription(offerToDesktop);
             })
             .then(() => {
               return window.crypto.subtle.importKey("spki", pub, { name: "RSA-OAEP", hash: {name: "SHA-256"} }, false, ["encrypt"])
@@ -169,7 +270,7 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
             })
             .then((encrypted) => {
               E_secret_key = _arrayBufferToBase64(encrypted);
-              var content = `${E_secret_key} ${E_end_point}`
+              var content = `${E_secret_key} ${encodeURIComponent(E_end_point)}`
               ws.send(JSON.stringify({"type":"ACK","content":content,"to":DESKTOP_ID,"from":WEBSOCKET_ID}))
             })
             .catch((err) => {
@@ -180,8 +281,11 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
           }
           break
         case "RES":
-          alert(data.content);
-          ws.close();
+          var bytes  = CryptoJS.AES.decrypt(decodeURIComponent(data.content), SECRET_KEY);
+          var originalText = bytes.toString(CryptoJS.enc.Utf8);
+          peerConnection.setRemoteDescription(JSON.parse(originalText));
+          // console.log(JSON.parse(originalText));
+          // ws.close();
           break
       }
     } catch (e) {
@@ -192,5 +296,5 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
     console.log('CONNECTED');
   }
 
-  return ws;
+  return {ws, peerConnection, dataChannel};
 }

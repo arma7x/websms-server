@@ -101,6 +101,8 @@ func listening() {
 				switch (msg.Type) {
 					case "TEST":
 						fallthrough
+					case "ONICECANDIDATE":
+						fallthrough
 					case "SYN":
 						fallthrough
 					case "SYN-ACK":
