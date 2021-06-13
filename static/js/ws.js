@@ -111,9 +111,11 @@ function connectAsDesktop() {
         case "ONICECANDIDATE":
           var candidate = JSON.parse(decodeURIComponent(data.content))
           if (candidate) {
+            console.log(candidate);
             try {
               peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
+              peerConnection.addIceCandidate(candidate);
               console.log(e, candidate);
             }
           }
@@ -263,10 +265,11 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
         case "ONICECANDIDATE":
           var candidate = JSON.parse(decodeURIComponent(data.content))
           if (candidate) {
+            console.log(candidate);
             try {
               peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
-              console.log(e);
+              peerConnection.addIceCandidate(candidate);
               console.log(e, candidate);
             }
           }
