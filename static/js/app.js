@@ -9,49 +9,50 @@ function isBlank(str) {
   return (!str || /^\s*$/.test(str));
 }
 
-function sendMessage(isDesktop = false) {
-
-  var _type;
-  var _dataChannel;
-  var _secret;
-
-  if (TYPE_DOM.value == "") {
-    alert('Please select type');
+function sendMessage() {
+  if (window['peer'] == null) {
     return
-  } else {
-    _type = parseInt(TYPE_DOM.value)
   }
-
-  if (isDesktop) {
-    if (!CONNECTED_CLIENTS[DEVICE_DOM.value] || DEVICE_DOM.value == "") {
-      alert('No Recipeint');
-      return
-    } else {
-      _dataChannel = CONNECTED_CLIENTS[DEVICE_DOM.value].dataChannel;
-      _secret = CONNECTED_CLIENTS[DEVICE_DOM.value].secret_key;
-    }
-  } else {
-    if (!CONN) {
-      alert('No Recipeint');
-      return
-    } else {
-      _dataChannel = CONN.dataChannel;
-      _secret = SECRET_KEY;
-    }
-  }
-  console.log('ENCRYPT USING', _secret);
-  const title = encodeURIComponent(document.getElementById('title').value !== "" ? document.getElementById('title').value : 'Push Notification');
+  console.log('ENCRYPT USING', SECRET_KEY);
   const raw_body = document.getElementById('body').value !== "" ? document.getElementById('body').value : 'Push notifications with Service Workers';
-  var ciphertext = CryptoJS.AES.encrypt(raw_body, _secret).toString();
-  _dataChannel.send(`${title} ${_type} ${ciphertext}`)
+  var ciphertext = CryptoJS.AES.encrypt(raw_body, SECRET_KEY).toString();
+  window['peer'].send(`${ciphertext}`)
+}
+
+function _connectAsHost() {
+  CONN = connectAsHost((id) => {
+    console.log('READY', id);
+    CONN.onmessage = (event) => {
+      try {
+        data = JSON.parse(event.data)
+        peer.signal(JSON.parse(data.content));
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    const peer = new SimplePeer({
+      initiator: false,
+      config: {
+        iceServers: [{
+          urls: 'stun:stun.l.google.com:19302' 
+        }]
+      }
+    });
+    peer.on('signal', data => {
+      CONN.send(JSON.stringify({"type":"SIGNALING","content":JSON.stringify(data),"to":id,"from":0}))
+    });
+    peer.on('connect', () => {
+      peer.send('hey peer1, im fine')
+    });
+    peer.on('data', data => {
+      console.log('data: ' + data)
+    });
+    peer.on('error', err => console.log('error', err));
+    window['peer'] = peer;
+  });
 }
 
 function connectToDesktop() {
-  const name = prompt('Name ?');
-  if (isBlank(name)) {
-    alert('Name is required');
-    return
-  }
   const desktop_id = prompt('Desktop ID ?');
   if (isBlank(desktop_id)) {
     alert('Desktop ID is required');
@@ -59,7 +60,36 @@ function connectToDesktop() {
   }
   try {
     const _id = JSON.parse(desktop_id);
-    CONN = connectAsClient(name, _id);
+    CONN = connectAsClient(_id, (id) => {
+      console.log('READY', id);
+      CONN.onmessage = (event) => {
+        try {
+          data = JSON.parse(event.data)
+          peer.signal(JSON.parse(data.content));
+        } catch (e) {
+          console.log(e);
+        }
+      }
+      const peer = new SimplePeer({
+        initiator: true,
+        config: {
+          iceServers: [{
+            urls: 'stun:stun.l.google.com:19302' 
+          }]
+        }
+      });
+      peer.on('signal', data => {
+        CONN.send(JSON.stringify({"type":"SIGNALING","content":JSON.stringify(data),"to":id,"from":0}))
+      });
+      peer.on('connect', () => {
+        peer.send('hey peer2, how is it going?')
+      });
+      peer.on('data', data => {
+        console.log('data: ' + data)
+      });
+      peer.on('error', err => console.log('error', err));
+      window['peer'] = peer;
+    });
   } catch(e) {
     alert('Desktop ID must be a number');
   }

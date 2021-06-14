@@ -24,25 +24,15 @@
     <div class="__client__">CLIENT ID: <span id="client_id"></span></div>
 
     <div class="container">
-      <input id="title" type="text" placeholder="title" class="nav" style="margin:0 0 10px 0;"/>
       <input id="body" type="text" placeholder="body" class="nav" style="margin:0 0 10px 0;" maxlength="160" />
-      <select name="type" id="type" style="margin:0 0 10px 0;">
-        <option value="">Select type</option>
-        <option value="1">Message</option>
-        <option value="2">Whatsapp</option>
-      </select>
-      <select name="device" id="device" class="__server__ " style="margin:0 0 10px 0;">
-        <option value="">Select device</option>
-      </select>
     </div>
 
+    <button style="margin-bottom:10px;" onclick="sendMessage()">Push To Client</button>
     <div class="__server__ container">
-      <button style="margin-bottom:10px;" onclick="sendMessage(true)">Push To Client</button>
-      <button style="margin-bottom:10px;" onclick="connectAsDesktop()">Connect As Desktop</button>
+      <button style="margin-bottom:10px;" onclick="_connectAsHost()">Connect As Desktop</button>
     </div>
 
     <div class="__client__ container">
-      <button style="margin-bottom:10px;" onclick="sendMessage(false)">Push To Desktop</button>
       <button style="margin-bottom:10px;" onclick="connectToDesktop()">Connect To Desktop</button>
     </div>
 
@@ -51,7 +41,7 @@
     </div>
   </div>
 
-  <script src="/static/js/adapter-latest.js"></script>
+  <script src="/static/js/simplepeer.min.js"></script>
   <script src="/static/js/helper.js"></script>
   <script src="/static/js/crypto-js.min.js"></script>
   <script src="/static/js/ws.js"></script>

@@ -101,7 +101,7 @@ func listening() {
 				switch (msg.Type) {
 					case "TEST":
 						fallthrough
-					case "ONICECANDIDATE":
+					case "SIGNALING":
 						fallthrough
 					case "SYN":
 						fallthrough
@@ -170,6 +170,8 @@ func HandleWebsocketRequest (ctx *context.Context) {
 				if msg, err := validateMessage(data); err == nil {
 					msg.From = getClientID(ws) //override from client
 					message <- msg
+				} else {
+					log.Println(err);
 				}
 				break
 			default:
