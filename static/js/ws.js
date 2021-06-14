@@ -114,8 +114,8 @@ function connectAsDesktop() {
             //console.log(candidate);
             try {
               const c = new RTCIceCandidate(candidate);
-              console.log(c);
               if (c.type !== 'host') {
+                console.log(c);
                 peerConnection.addIceCandidate(c);
               }
             } catch (e) {
