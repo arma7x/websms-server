@@ -111,11 +111,15 @@ function connectAsDesktop() {
         case "ONICECANDIDATE":
           var candidate = JSON.parse(decodeURIComponent(data.content))
           if (candidate) {
-            console.log(candidate);
+            //console.log(candidate);
             try {
-              peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+              const c = new RTCIceCandidate(candidate);
+              console.log(c);
+              if (c.type !== 'host') {
+                peerConnection.addIceCandidate(c);
+              }
             } catch (e) {
-              peerConnection.addIceCandidate(candidate);
+              //peerConnection.addIceCandidate(candidate);
               console.log(e, candidate);
             }
           }
@@ -265,11 +269,13 @@ function connectAsClient(CLIENT_NAME = "KaiOS" ,DESKTOP_ID) {
         case "ONICECANDIDATE":
           var candidate = JSON.parse(decodeURIComponent(data.content))
           if (candidate) {
-            console.log(candidate);
+            //console.log(candidate);
             try {
-              peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+              const c = new RTCIceCandidate(candidate);
+              console.log(c);
+              peerConnection.addIceCandidate(c);
             } catch (e) {
-              peerConnection.addIceCandidate(candidate);
+              //peerConnection.addIceCandidate(candidate);
               console.log(e, candidate);
             }
           }

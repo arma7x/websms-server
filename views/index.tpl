@@ -51,6 +51,7 @@
     </div>
   </div>
 
+  <script src="/static/js/adapter-latest.js"></script>
   <script src="/static/js/helper.js"></script>
   <script src="/static/js/crypto-js.min.js"></script>
   <script src="/static/js/ws.js"></script>
