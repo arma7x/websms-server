@@ -32,9 +32,10 @@ function _connectAsHost() {
     }
     const peer = new SimplePeer({
       initiator: false,
+      trickle: false,
       config: {
         iceServers: [{
-          urls: 'stun:stun.l.google.com:19302' 
+          urls: 'stun:stun.l.google.com:19302'
         }]
       }
     });
@@ -72,9 +73,10 @@ function connectToDesktop() {
       }
       const peer = new SimplePeer({
         initiator: true,
+        trickle: false,
         config: {
           iceServers: [{
-            urls: 'stun:stun.l.google.com:19302' 
+            urls: 'stun:stun.l.google.com:19302'
           }]
         }
       });
